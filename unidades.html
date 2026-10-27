@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Conversión de Unidades</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f1eafc;
+  margin: 20px;
+}
+.caja {
+  max-width: 600px;
+  margin: auto;
+  background-color: white;
+  padding: 20px;
+  border: 2px solid #7c3aed;
+}
+h1 {
+  color: #5b21b6;
+  text-align: center;
+}
+h2 {
+  color: #6d28d9;
+}
+label {
+  display: block;
+  margin-top: 12px;
+  font-weight: bold;
+}
+select, input {
+  width: 100%;
+  padding: 8px;
+  font-size: 16px;
+}
+button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: #6d28d9;
+  color: white;
+  border: none;
+  font-size: 16px;
+}
+#resultado {
+  margin-top: 20px;
+  padding: 12px;
+  background-color: #e6d9f8;
+  font-size: 20px;
+  color: #4c1d95;
+}
+#contenedorTabla {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th, td {
+  border: 1px solid #a78bfa;
+  padding: 5px 8px;
+  text-align: right;
+  white-space: nowrap;
+}
+th {
+  background-color: #e6d9f8;
+  color: #4c1d95;
+}
+</style>
+</head>
+<body>
+
+<div class="caja">
+  <h1>Conversión de Unidades</h1>
+
+  <label>Magnitud</label>
+  <select id="magnitud" onchange="cargarUnidades()"></select>
+
+  <label>Valor</label>
+  <input type="number" id="valor" value="1">
+
+  <label>Unidad inicial</label>
+  <select id="inicial"></select>
+
+  <label>Unidad final</label>
+  <select id="final"></select>
+
+  <button onclick="convertir()">Convertir</button>
+
+  <div id="resultado"></div>
+
+  <h2>Tabla de factores</h2>
+  <button onclick="mostrarTabla()">Mostrar / ocultar tabla</button>
+  <div id="contenedorTabla"></div>
+</div>
+
+<script>
+// Cada magnitud tiene una lista de unidades.
+// El número es cuánto vale 1 unidad en la unidad base
+// (la base es la que tiene factor 1).
+var datos = {
+  "Ángulo plano": [["grado", 0.0174533], ["minuto", 0.000290888], ["segundo", 0.00000484814], ["radián", 1], ["rev", 6.28319]],
+  "Ángulo sólido": [["esferorradián", 1], ["esfera", 12.5664]],
+  "Longitud": [["cm", 0.01], ["m", 1], ["km", 1000], ["in", 0.0254], ["ft", 0.3048], ["mi", 1609.344], ["yarda", 0.9144], ["milla náutica", 1852], ["fathom", 1.8288], ["ángstrom", 1e-10], ["nm", 1e-9], ["fermi", 1e-15], ["año-luz", 9.46e15], ["parsec", 3.084e16], ["radio de Bohr", 5.292e-11], ["rod", 5.0292], ["mil", 0.0000254]],
+  "Área": [["m²", 1], ["cm²", 0.0001], ["ft²", 0.0929030], ["in²", 0.00064516], ["km²", 1000000], ["mi²", 2589988], ["acre", 4046.86], ["hectárea", 10000], ["barn", 1e-28]],
+  "Volumen": [["m³", 1], ["cm³", 0.000001], ["litro", 0.001], ["ft³", 0.0283168], ["in³", 0.0000163871], ["galón US", 0.00378541], ["galón imperial", 0.00454609]],
+  "Masa": [["gramo", 0.001], ["kilogramo", 1], ["slug", 14.5939], ["u", 1.66054e-27], ["onza", 0.0283495], ["libra", 0.453592], ["tonelada (2000 lb)", 907.185], ["tonelada métrica", 1000]],
+  "Densidad": [["slug/ft³", 515.379], ["kg/m³", 1], ["g/cm³", 1000], ["lb/ft³", 16.0185], ["lb/in³", 27679.9]],
+  "Tiempo": [["año", 31557600], ["día", 86400], ["hora", 3600], ["minuto", 60], ["segundo", 1]],
+  "Velocidad": [["ft/s", 0.3048], ["km/h", 0.277778], ["m/s", 1], ["mi/h", 0.44704], ["cm/s", 0.01], ["nudo", 0.514444]],
+  "Fuerza": [["dina", 0.00001], ["newton", 1], ["libra", 4.44822], ["poundal", 0.138255], ["gramo-fuerza", 0.00980665], ["kilogramo-fuerza", 9.80665]],
+  "Energía, trabajo y calor": [["Btu", 1055.06], ["erg", 1e-7], ["ft·lb", 1.35582], ["hp·h", 2684500], ["joule", 1], ["caloría", 4.1868], ["kW·h", 3600000], ["eV", 1.60218e-19], ["MeV", 1.60218e-13], ["kilogramo (E=mc²)", 8.98755e16], ["u (E=mc²)", 1.49242e-10]],
+  "Presión": [["atmósfera", 101325], ["dina/cm²", 0.1], ["pulgada de agua", 249.082], ["cm Hg", 1333.22], ["pascal", 1], ["lb/in²", 6894.76], ["lb/ft²", 47.8803], ["bar", 100000], ["torr", 133.322], ["milibar", 100]],
+  "Potencia": [["Btu/h", 0.293071], ["ft·lb/s", 1.35582], ["hp", 745.7], ["cal/s", 4.1868], ["kilowatt", 1000], ["watt", 1]],
+  "Flujo magnético": [["maxwell", 1e-8], ["weber", 1]],
+  "Campo magnético": [["gauss", 0.0001], ["tesla", 1], ["miligauss", 0.0000001]]
+};
+
+// Llena el select de magnitudes
+var selMagnitud = document.getElementById("magnitud");
+for (var nombre in datos) {
+  selMagnitud.add(new Option(nombre, nombre));
+}
+
+// Llena las listas de unidades según la magnitud elegida
+function cargarUnidades() {
+  var lista = datos[selMagnitud.value];
+  var inicial = document.getElementById("inicial");
+  var final = document.getElementById("final");
+  inicial.innerHTML = "";
+  final.innerHTML = "";
+  for (var i = 0; i < lista.length; i++) {
+    inicial.add(new Option(lista[i][0], i));
+    final.add(new Option(lista[i][0], i));
+  }
+  final.value = 1;
+  // Si la tabla estaba abierta, se borra para no mostrar la de otra magnitud
+  document.getElementById("contenedorTabla").innerHTML = "";
+}
+
+// Hace la conversión: valor × factor inicial ÷ factor final
+function convertir() {
+  var lista = datos[selMagnitud.value];
+  var valor = parseFloat(document.getElementById("valor").value);
+  var i = document.getElementById("inicial").value;
+  var f = document.getElementById("final").value;
+
+  var resultado = valor * lista[i][1] / lista[f][1];
+
+  document.getElementById("resultado").innerText =
+    valor + " " + lista[i][0] + " = " + resultado + " " + lista[f][0];
+}
+
+// Redondea a 5 cifras para que la tabla no quede enorme
+function redondear(numero) {
+  return Number(numero.toPrecision(5));
+}
+
+// Muestra la tabla con todos los factores de la magnitud elegida
+// Cada fila dice cuánto vale 1 unidad en las unidades de cada columna
+function mostrarTabla() {
+  var contenedor = document.getElementById("contenedorTabla");
+
+  // Si ya está visible, la ocultamos
+  if (contenedor.innerHTML != "") {
+    contenedor.innerHTML = "";
+    return;
+  }
+
+  var lista = datos[selMagnitud.value];
+  var html = "<table><tr><th>1 unidad</th>";
+
+  // Encabezados de las columnas
+  for (var c = 0; c < lista.length; c++) {
+    html = html + "<th>" + lista[c][0] + "</th>";
+  }
+  html = html + "</tr>";
+
+  // Una fila por cada unidad
+  for (var f = 0; f < lista.length; f++) {
+    html = html + "<tr><th>" + lista[f][0] + "</th>";
+    for (var c = 0; c < lista.length; c++) {
+      var factor = lista[f][1] / lista[c][1];
+      html = html + "<td>" + redondear(factor) + "</td>";
+    }
+    html = html + "</tr>";
+  }
+
+  html = html + "</table>";
+  contenedor.innerHTML = html;
+}
+
+cargarUnidades();
+</script>
+
+</body>
+</html>
